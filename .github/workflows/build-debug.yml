@@ -22,18 +22,38 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      - name: 安装 Android 37 编译SDK与构建工具
+      - name: 接受 SDK 许可并安装编译环境
         run: |
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
-          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-37" "build-tools;37.0.0"
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-36" "build-tools;36.0.0"
 
-      - name: 自动生成 local.properties（解决文件缺失报错）
+      - name: 自动生成 local.properties（解决文件缺失+签名配置报错）
         run: |
           echo "sdk.dir=$ANDROID_HOME" > local.properties
           echo "storeFile=release.jks" >> local.properties
           echo "keyAlias=key" >> local.properties
           echo "storePassword=123456" >> local.properties
 
+      - name: Gradle 构建缓存加速
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/libs.versions.toml') }}
+          restore-keys: ${{ runner.os }}-gradle-
+
+      - name: 授予 gradlew 执行权限
+        run: chmod +x gradlew
+
+      - name: 构建 Mobile 通用版（armeabi-v7a，手机/盒子通用兼容）
+        run: ./gradlew assembleMobileArmeabi_v7aDebug
+
+      - name: 上传 APK 安装包产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: PickTV-Mobile-Armv7-Debug
+          path: app/build/outputs/apk/mobile/armeabi_v7a/debug/*.apk
       - name: 缓存 Gradle 加速构建
         uses: actions/cache@v4
         with:
