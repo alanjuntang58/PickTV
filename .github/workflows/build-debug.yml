@@ -1,0 +1,40 @@
+name: 构建 PickTV Debug APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 拉取仓库代码
+        uses: actions/checkout@v4
+
+      - name: 配置 JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: 缓存加速构建
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
+          restore-keys: ${{ runner.os }}-gradle-
+
+      - name: 授予执行权限
+        run: chmod +x gradlew
+
+      - name: 开始构建安装包
+        run: ./gradlew assembleDebug
+
+      - name: 打包APK供下载
+        uses: actions/upload-artifact@v4
+        with:
+          name: PickTV-测试版安装包
+          path: app/build/outputs/apk/debug/*.apk
